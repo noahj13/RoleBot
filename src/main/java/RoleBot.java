@@ -1,15 +1,12 @@
 import org.javacord.api.DiscordApi;
 import org.javacord.api.DiscordApiBuilder;
-import org.javacord.api.entity.channel.Channel;
 import org.javacord.api.entity.permission.Permissions;
 import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class RoleBot {
     public static void main(String[] args) {
@@ -34,6 +31,14 @@ public class RoleBot {
 
         api.addMessageCreateListener(event -> {
             List<Role> roles = server.getRoles();
+            long temp = 1000;
+            for(int i = 0;i<roles.size();i++){
+                if(roles.get(i).getName().equals("RoleBot")){
+                    temp = i;
+                    break;
+                }
+            }
+            long botIndex = temp;
             if(event.getChannel().getIdAsString().equals(channelID)){
                 String message = event.getMessageContent();
                 if(message.equals("@Everyone")||message.equals("RoleBot")){
@@ -48,7 +53,7 @@ public class RoleBot {
                             found = true;
                         }
                     }
-                    if(!found){
+                    if(!found && user.getRoles(api.getServerById(serverID).get()).stream().filter(r->r.getPosition() > botIndex).count() == 0){
                         event.getMessage().delete();
                     }
                 }
