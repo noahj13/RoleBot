@@ -28,44 +28,40 @@ public class RoleBot {
         DiscordApi api = new DiscordApiBuilder().setToken(token).login().join();
         Server server = api.getServerById(serverID).get();
         //Channel ch = api.getChannelById(channelID).get();
-
-        api.addMessageCreateListener(event -> {
-            List<Role> roles = server.getRoles();
-            long temp = 1000;
-            for(int i = 0;i<roles.size();i++){
-                if(roles.get(i).getName().equals("RoleBot")){
-                    temp = i;
-                    break;
-                }
+        List<Role> roles = server.getRoles();
+        long temp = 1000;
+        for(int i = 0;i<roles.size();i++){
+            if(roles.get(i).getName().equals("RoleBot")){
+                temp = i;
+                break;
             }
-            long botIndex = temp;
+        }
+        long botIndex = temp;
+
+        api.addReactionAddListener(event -> {
             if(event.getChannel().getIdAsString().equals(channelID)){
-                String message = event.getMessageContent();
-                if(message.equals("@Everyone")||message.equals("RoleBot")){
-                    event.getMessage().delete();
-                }
-                else if (event.getMessageAuthor().asUser().isPresent()) {
-                    User user = event.getMessageAuthor().asUser().get();
-                    boolean found = false;
-                    for(Role r:roles){
-                        if(r.getName().equals(message)){
+                User user = event.getUser();
+                boolean found = false;
+                if(event.getEmoji().isKnownCustomEmoji()) {
+                    String emote = event.getEmoji().asKnownCustomEmoji().get().getName();
+                    for (Role r : roles) {
+                        if (r.getName().equalsIgnoreCase(emote)) {
                             user.addRole(r);
                             found = true;
                         }
                     }
-                    if(!found && user.getRoles(api.getServerById(serverID).get()).stream().filter(r->r.getPosition() > botIndex).count() == 0){
-                        event.getMessage().delete();
-                    }
+                }
+                if(!found && user.getRoles(server).stream().map(Role::getPosition).min(Integer::compareTo).get() > botIndex){
+                    event.removeReaction();
                 }
             }
         });
-        api.addMessageDeleteListener(event -> {
-            List<Role> roles = server.getRoles();
+        api.addReactionRemoveListener(event -> {
             if(event.getChannel().getIdAsString().equals(channelID)){
-                String message = event.getMessageContent().orElse("");
-                if (event.getMessageAuthor().isPresent()) {
-                    User user = event.getMessageAuthor().get().asUser().get();
-                    roles.parallelStream().filter(r -> r.getName().equals(message)).forEach(user::removeRole);
+                User user = event.getUser();
+                if (event.getEmoji().isKnownCustomEmoji()) {
+                    String emote = event.getEmoji().asKnownCustomEmoji().get().getName();
+                    roles.parallelStream().filter(r -> r.getName().equalsIgnoreCase(emote)).forEach(user::removeRole);
                 }
             }
         });
