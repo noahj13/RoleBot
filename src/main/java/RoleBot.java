@@ -7,6 +7,7 @@ import org.javacord.api.entity.user.User;
 
 import java.io.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RoleBot {
     public static void main(String[] args) {
@@ -37,6 +38,14 @@ public class RoleBot {
             }
         }
         long botIndex = temp;
+        api.addMessageCreateListener(event -> {
+            if(event.getMessageContent().equalsIgnoreCase("!refresh")){
+                changeRoles(server.getRoles(),roles);
+            }
+            else if(event.getMessageAuthor().asUser().get().isBotOwner() && event.getMessageContent().equalsIgnoreCase("!roles")){
+                event.getChannel().sendMessage(getRolesAsString(roles));
+            }
+        });
 
         api.addReactionAddListener(event -> {
             if(event.getChannel().getIdAsString().equals(channelID)){
@@ -68,5 +77,14 @@ public class RoleBot {
 
         // Print the invite url of your bot
         System.out.println("You can invite the bot by using the following url: " + api.createBotInvite(Permissions.fromBitmask(268443648)));
+    }
+
+    private static List<Role> changeRoles(List<Role> newRoles,List<Role> oldRoles){
+        oldRoles = newRoles;
+        return oldRoles;
+    }
+
+    private static String getRolesAsString(List<Role> roles){
+        return roles.stream().map(Role::getName).collect(Collectors.joining(", "));
     }
 }
