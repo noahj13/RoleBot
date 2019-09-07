@@ -29,25 +29,8 @@ public class RoleBot {
         DiscordApi api = new DiscordApiBuilder().setToken(token).login().join();
         Server server = api.getServerById(serverID).get();
         //Channel ch = api.getChannelById(channelID).get();
-        List<Role> roles = server.getRoles();
-        long temp = 1000;
-        for(int i = 0;i<roles.size();i++){
-            if(roles.get(i).getName().equals("RoleBot")){
-                temp = i;
-                break;
-            }
-        }
-        long botIndex = temp;
-        api.addMessageCreateListener(event -> {
-            if(event.getMessageContent().equalsIgnoreCase("!refresh")){
-                changeRoles(server.getRoles(),roles);
-            }
-            else if(event.getMessageAuthor().asUser().get().isBotOwner() && event.getMessageContent().equalsIgnoreCase("!roles")){
-                event.getChannel().sendMessage(getRolesAsString(roles));
-            }
-        });
-
         api.addReactionAddListener(event -> {
+            List<Role> roles = server.getRoles();
             if(event.getChannel().getIdAsString().equals(channelID)){
                 User user = event.getUser();
                 boolean found = false;
@@ -60,12 +43,13 @@ public class RoleBot {
                         }
                     }
                 }
-                if(!found && user.getRoles(server).stream().map(Role::getPosition).min(Integer::compareTo).get() > botIndex){
+                if(!found && user.getRoles(server).stream().map(Role::getPosition).min(Integer::compareTo).get() > getBotRolePos(roles)){
                     event.removeReaction();
                 }
             }
         });
         api.addReactionRemoveListener(event -> {
+            List<Role> roles = server.getRoles();
             if(event.getChannel().getIdAsString().equals(channelID)){
                 User user = event.getUser();
                 if (event.getEmoji().isKnownCustomEmoji()) {
@@ -75,13 +59,25 @@ public class RoleBot {
             }
         });
 
+        api.addMessageCreateListener(event ->{
+            if(event.getMessageAuthor().isServerAdmin() && event.getMessageContent().equalsIgnoreCase("!roles")){
+                event.getChannel().sendMessage("roles: " + server.getRoles().stream().map(Role::getName).collect(Collectors.joining("\n")));
+            }
+        });
+
         // Print the invite url of your bot
         System.out.println("You can invite the bot by using the following url: " + api.createBotInvite(Permissions.fromBitmask(268443648)));
     }
 
-    private static List<Role> changeRoles(List<Role> newRoles,List<Role> oldRoles){
-        oldRoles = newRoles;
-        return oldRoles;
+    private static long getBotRolePos(List<Role> roles){
+        long temp = 1000;
+        for(int i = 0;i<roles.size();i++){
+            if(roles.get(i).getName().equals("RoleBot")){
+                temp = i;
+                break;
+            }
+        }
+        return temp;
     }
 
     private static String getRolesAsString(List<Role> roles){
